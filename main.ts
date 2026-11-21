@@ -9,9 +9,33 @@ import { deflateSync } from 'node:zlib';
 type RGB = [number, number, number];
 type Story = { region: string; icon: string; color: string; title: string; text: string };
 
-const W = 1024;
-const H = 1024;
-const px = new Uint8Array(W * H * 3);
+// Everything draws into the current target: the page, or an offscreen buffer that is later shrunk (smooth icons).
+const PAGE_W = 1024;
+const PAGE_H = 1024;
+const page = new Uint8Array(PAGE_W * PAGE_H * 3);
+let px = page;
+let W = PAGE_W;
+let H = PAGE_H;
+function offscreen(w: number, h: number, bg: RGB, draw: () => void): Uint8Array {
+  const keep = [px, W, H] as const;
+  px = new Uint8Array(w * h * 3); W = w; H = h;
+  for (let i = 0; i < w * h; i++) { px[i * 3] = bg[0]; px[i * 3 + 1] = bg[1]; px[i * 3 + 2] = bg[2]; }
+  draw();
+  const out = px;
+  [px, W, H] = keep;
+  return out;
+}
+// Area-average a square offscreen buffer of side `sw` down to side `dw` at (dx, dy) on the current target.
+function shrink(src: Uint8Array, sw: number, dx: number, dy: number, dw: number): void {
+  const f = sw / dw;
+  for (let y = 0; y < dw; y++) for (let x = 0; x < dw; x++) {
+    let r = 0, g = 0, b = 0, n = 0;
+    for (let j = Math.floor(y * f); j < Math.floor((y + 1) * f); j++) for (let i = Math.floor(x * f); i < Math.floor((x + 1) * f); i++) {
+      const k = (j * sw + i) * 3; r += src[k]; g += src[k + 1]; b += src[k + 2]; n++;
+    }
+    set(dx + x, dy + y, [Math.round(r / n), Math.round(g / n), Math.round(b / n)]);
+  }
+}
 
 const hex = (h: string): RGB => [parseInt(h.slice(1, 3), 16), parseInt(h.slice(3, 5), 16), parseInt(h.slice(5, 7), 16)];
 const mix = (a: RGB, b: RGB, t: number): RGB => [0, 1, 2].map((i) => Math.round(a[i] + (b[i] - a[i]) * t)) as RGB;
@@ -86,7 +110,8 @@ const FONT: Record<string, number[]> = {
   '%': [0x18, 0x19, 0x02, 0x04, 0x08, 0x13, 0x03], '(': [0x02, 0x04, 0x08, 0x08, 0x08, 0x04, 0x02],
   ')': [0x08, 0x04, 0x02, 0x02, 0x02, 0x04, 0x08], '&': [0x0c, 0x12, 0x14, 0x08, 0x15, 0x12, 0x0d],
   '!': [0x04, 0x04, 0x04, 0x04, 0x04, 0, 0x04], '?': [0x0e, 0x11, 0x01, 0x02, 0x04, 0, 0x04],
-  '+': [0, 0x04, 0x04, 0x1f, 0x04, 0x04, 0],
+  '+': [0, 0x04, 0x04, 0x1f, 0x04, 0x04, 0], '[': [0x0e, 0x08, 0x08, 0x08, 0x08, 0x08, 0x0e],
+  ']': [0x0e, 0x02, 0x02, 0x02, 0x02, 0x02, 0x0e], '*': [0, 0x15, 0x0e, 0x1f, 0x0e, 0x15, 0], '=': [0, 0, 0x1f, 0, 0x1f, 0, 0], ';': [0, 0x0c, 0x0c, 0, 0x0c, 0x04, 0x08],
 };
 
 const adv = (s: number) => 6 * s;
@@ -178,6 +203,21 @@ function icon(kind: string, cx: number, cy: number, c: RGB): void {
       rect(cx - 40, cy + o - 2, 12, 4, INK); rect(cx + 28, cy + o - 2, 12, 4, INK);
     }
     text('AI', cx - textW('AI', 4) / 2, cy - 14, 4, WHITE);
+  } else if (kind === 'shield') {
+    poly([[cx - 32, cy - 36], [cx + 32, cy - 36], [cx + 32, cy + 2], [cx, cy + 40], [cx - 32, cy + 2]], INK);
+    poly([[cx - 24, cy - 28], [cx + 24, cy - 28], [cx + 24, cy], [cx, cy + 30], [cx - 24, cy]], c);
+    rect(cx - 4, cy - 22, 8, 40, WHITE); rect(cx - 18, cy - 8, 36, 8, WHITE);
+  } else if (kind === 'ship') {
+    poly([[cx - 44, cy + 6], [cx + 44, cy + 6], [cx + 32, cy + 26], [cx - 34, cy + 26]], INK);
+    rect(cx - 20, cy - 12, 34, 18, INK); rect(cx - 10, cy - 28, 10, 16, INK);
+    for (let k = 0; k < 3; k++) rect(cx - 16 + k * 10, cy - 6, 6, 6, mix(c, WHITE, 0.75));
+    for (let k = -40; k < 40; k += 4) disc(cx + k, cy + 32 + Math.sin(k / 5) * 3, 2.5, c);
+    const star: number[][] = [];
+    for (let k = 0; k < 14; k++) { const r = k % 2 ? 7 : 17; const a = (k * Math.PI) / 7; star.push([cx + 26 + Math.cos(a) * r, cy - 26 + Math.sin(a) * r]); }
+    poly(star, [231, 76, 60]);
+  } else if (kind === 'cross') {
+    rect(cx - 12, cy - 36, 24, 72, c); rect(cx - 36, cy - 12, 72, 24, c);
+    ring(cx, cy, 46, 4, c);
   } else if (kind === 'chart') {
     rect(cx - 40, cy + 30, 82, 4, INK); rect(cx - 40, cy - 38, 4, 72, INK);
     for (let k = 0; k < 4; k++) rect(cx - 30 + k * 18, cy + 30 - (14 + k * 12), 12, 14 + k * 12, mix(c, WHITE, 0.35));
@@ -187,37 +227,143 @@ function icon(kind: string, cx: number, cy: number, c: RGB): void {
   }
 }
 
-// ---- layout ----
-const data = JSON.parse(readFileSync(new URL('./news.json', import.meta.url), 'utf8')) as { date: string; stories: Story[]; footer: string };
-const BG: RGB = [244, 241, 234];
-const NAVY: RGB = [20, 33, 61];
-rect(0, 0, W, H, BG);
+// ---- layout: masthead, key numbers, hero + map, 12 tiles, list, date check, regional index, footer ----
+type Item = { region: string; cat: string; icon: string; lon: number; lat: number; title: string; text: string; src: string };
+const data = JSON.parse(readFileSync(new URL('./news.json', import.meta.url), 'utf8')) as {
+  title: string; subtitle: string; edition: string; cats: Record<string, string>;
+  numbers: { n: string; cap: string; src: string }[]; hero: Item; tiles: Item[];
+  also: { t: string; src: string; region: string }[]; datecheck: string[]; sources: string; policy: string;
+};
+const PAPER: RGB = [247, 241, 228];
+const CARD: RGB = [255, 252, 245];
+const RULE: RGB = [60, 52, 44];
+const GREY: RGB = [105, 98, 90];
+const catColor = (c: string): RGB => hex(data.cats[c] ?? '#666666');
+// Sources get a * when a story rests on one outlet only.
+const cite = (s: string) => '[' + s.replace(' *', '') + ']' + (s.replace(' *', '').split(',').length < 2 ? '*' : '');
+const center = (t: string, y: number, s: number, c: RGB, bold = false) => text(t, Math.round((PAGE_W - textW(t, s)) / 2), y, s, c, bold);
+const smallIcon = (kind: string, x: number, y: number, size: number, c: RGB, bg: RGB) =>
+  shrink(offscreen(104, 104, bg, () => icon(kind, 52, 52, c)), 104, x, y, size);
 
-rect(0, 0, W, 150, NAVY);
-text('WORLD NEWS IN ONE PICTURE', (W - textW('WORLD NEWS IN ONE PICTURE', 3)) / 2, 22, 3, [252, 196, 54]);
-text(data.date, (W - textW(data.date, 6)) / 2, 62, 6, WHITE);
-rect(0, 150, W, 6, [252, 196, 54]);
+rect(0, 0, PAGE_W, PAGE_H, PAPER);
 
-const CW = 320, CH = 266, GX = 16, GY = 170, GAP = 16;
-data.stories.forEach((s, n) => {
-  const x = GX + (n % 3) * (CW + GAP);
-  const y = GY + Math.floor(n / 3) * (CH + 10);
-  const c = hex(s.color);
-  rect(x + 3, y + 3, CW, CH, [214, 208, 196]);
-  rect(x, y, CW, CH, WHITE);
-  rect(x, y, CW, 28, c);
-  text(s.region, x + 10, y + 7, 2, WHITE);
-  icon(s.icon, x + 62, y + 90, c);
-  // Headline beside the icon, at most 3 lines; the body starts below whichever is taller.
-  const head = wrap(s.title, 10).slice(0, 3);
-  const headTop = y + 90 - (head.length * 30 - 9) / 2;
-  head.forEach((l, k) => text(l, x + 124, headTop + k * 30, 3, INK));
-  rect(x + 12, y + 150, CW - 24, 2, mix(c, WHITE, 0.6));
-  const body = wrap(s.text, 25);
-  body.slice(0, 5).forEach((l, k) => text(l, x + 12, y + 162 + k * 20, 2, [30, 34, 40], true));
+// Masthead
+center(data.title, 10, 4, INK, true);
+rect(8, 46, PAGE_W - 16, 3, RULE); rect(8, 51, PAGE_W - 16, 1, RULE);
+center(data.subtitle, 57, 2, [150, 40, 20], true);
+center(data.edition, 76, 1, GREY, true);
+rect(8, 88, PAGE_W - 16, 1, RULE);
+
+// Key numbers
+data.numbers.forEach((k, i) => {
+  const x = 8 + i * 168;
+  if (i) rect(x - 1, 94, 1, 54, [200, 190, 175]);
+  text(k.n, x + Math.round((168 - textW(k.n, 4)) / 2), 95, 4, [150, 40, 20], true);
+  text(k.cap, x + Math.round((168 - textW(k.cap, 1)) / 2), 128, 1, INK, true);
+  const s = '[' + k.src + ']';
+  text(s, x + Math.round((168 - textW(s, 1)) / 2), 139, 1, GREY);
+});
+rect(8, 152, PAGE_W - 16, 3, RULE);
+
+// Hero (story 1)
+const hero = data.hero;
+const hc = catColor(hero.cat);
+rect(8, 160, 496, 232, CARD);
+rect(8, 160, 496, 18, hc);
+text('1  LEAD - ' + hero.region + ' - ' + hero.cat, 14, 166, 1, WHITE, true);
+icon(hero.icon, 72, 246, hc);
+wrap(hero.title, 20).forEach((l, k) => text(l, 140, 190 + k * 26, 3, INK, true));
+const heroBody = wrap(hero.text, 58);
+heroBody.forEach((l, k) => text(l, 140, 250 + k * 12, 1, INK, true));
+text(cite(hero.src), 140, 254 + heroBody.length * 12, 1, GREY);
+// Date check box inside the hero column
+rect(16, 312, 480, 74, [244, 232, 212]);
+rect(16, 312, 3, 74, [150, 40, 20]);
+text('DATE CHECK - LEFT OUT, NOT 20 NOV:', 26, 318, 1, [150, 40, 20], true);
+data.datecheck.forEach((d, k) => text(d, 26 + (k % 2) * 240, 332 + Math.floor(k / 2) * 13, 1, INK, true));
+text('ALL TIMES AS REPORTED; LISTED ITEMS EXCLUDED.', 26, 373, 1, GREY);
+
+// World map with numbered pins
+const MX = 512, MY = 160, MW = 504, MH = 200;
+const mapX = (lon: number) => MX + ((lon + 180) / 360) * MW;
+const mapY = (lat: number) => MY + ((80 - lat) / 138) * MH;
+rect(MX, MY, MW, MH, [214, 230, 236]);
+const LAND: number[][][] = [
+  [[-165, 66], [-130, 71], [-85, 70], [-60, 55], [-67, 45], [-80, 32], [-81, 25], [-97, 26], [-88, 15], [-78, 8], [-92, 15], [-106, 23], [-118, 33], [-125, 48], [-140, 60]],
+  [[-50, 60], [-20, 70], [-30, 80], [-60, 80], [-70, 77]],
+  [[-80, 10], [-60, 10], [-35, -6], [-40, -22], [-58, -38], [-68, -55], [-75, -45], [-71, -18], [-81, -5]],
+  [[-10, 36], [-9, 44], [-2, 48], [5, 54], [8, 58], [5, 62], [15, 70], [30, 71], [40, 66], [40, 45], [28, 41], [20, 40], [12, 44], [3, 42]],
+  [[-6, 50], [2, 51], [-2, 58], [-6, 56]],
+  [[-17, 15], [-10, 30], [-5, 36], [10, 37], [32, 31], [43, 12], [51, 11], [40, -5], [40, -15], [32, -28], [20, -35], [12, -17], [9, 4], [-8, 5]],
+  [[40, 45], [40, 66], [70, 73], [110, 77], [140, 72], [180, 68], [160, 58], [140, 52], [130, 40], [122, 30], [110, 20], [105, 10], [100, 2], [98, 15], [90, 22], [80, 8], [73, 20], [67, 25], [57, 25], [50, 30], [56, 26], [45, 13], [35, 28], [35, 36]],
+  [[114, -22], [130, -12], [142, -11], [153, -27], [146, -39], [135, -35], [115, -34]],
+  [[95, 5], [106, -6], [120, -9], [140, -8], [125, 0], [110, 2]],
+  [[130, 31], [141, 36], [142, 45], [139, 38]],
+  [[166, -46], [174, -41], [178, -38], [172, -34]],
+];
+for (const p of LAND) poly(p.map(([lo, la]) => [mapX(lo), mapY(la)]), [196, 186, 160]);
+for (let lo = -150; lo <= 150; lo += 30) rect(Math.round(mapX(lo)), MY, 1, MH, [196, 214, 222]);
+const pins = [hero, ...data.tiles];
+pins.forEach((p, i) => {
+  const x = mapX(p.lon), y = mapY(p.lat);
+  disc(x, y, 8, WHITE); disc(x, y, 7, catColor(p.cat));
+  const lab = String(i + 1);
+  text(lab, Math.round(x - textW(lab, 1) / 2), Math.round(y - 3), 1, WHITE, true);
+});
+// Legend
+Object.keys(data.cats).forEach((c, i) => {
+  const x = MX + 4 + (i % 4) * 126, y = MY + MH + 6 + Math.floor(i / 4) * 13;
+  disc(x + 4, y + 3, 4, catColor(c));
+  text(c, x + 12, y, 1, INK, true);
 });
 
-text(data.footer, (W - textW(data.footer, 2)) / 2, 1000, 2, [70, 70, 70], true);
+// 12 illustrated tiles (stories 2-13)
+data.tiles.forEach((t, i) => {
+  const x = 8 + (i % 4) * 254, y = 398 + Math.floor(i / 4) * 120;
+  const c = catColor(t.cat);
+  rect(x, y, 246, 114, CARD);
+  rect(x, y, 246, 15, c);
+  text(String(i + 2) + '  ' + t.region + ' - ' + t.cat, x + 6, y + 4, 1, WHITE, true);
+  smallIcon(t.icon, x + 6, y + 21, 52, c, CARD);
+  wrap(t.title, 14).slice(0, 2).forEach((l, k) => text(l, x + 64, y + 23 + k * 18, 2, INK, true));
+  const body = wrap(t.text, 39).slice(0, 3);
+  body.forEach((l, k) => text(l, x + 6, y + 78 + k * 11, 1, INK, true));
+  const s = cite(t.src);
+  text(s, x + 240 - textW(s, 1), y + 23 + 36, 1, GREY);
+});
+
+// Also on 20 November (stories 14-37)
+const LY = 762;
+rect(8, LY, PAGE_W - 16, 2, RULE);
+text('ALSO ON 20 NOVEMBER', 8, LY + 6, 2, INK, true);
+data.also.forEach((a, i) => {
+  const x = 8 + (i % 2) * 508, y = LY + 25 + Math.floor(i / 2) * 11;
+  const n = String(i + 14).padStart(2, ' ');
+  text(n, x, y, 1, [150, 40, 20], true);
+  text(a.t, x + 18, y, 1, INK, true);
+  text(cite(a.src), x + 18 + textW(a.t, 1) + 6, y, 1, GREY);
+});
+
+// Regional index
+const IY = 920;
+rect(8, IY, PAGE_W - 16, 1, RULE);
+text('STORIES BY REGION', 8, IY + 6, 1, INK, true);
+const counts: Record<string, number> = {};
+for (const r of [hero.region, ...data.tiles.map((t) => t.region), ...data.also.map((a) => a.region)]) {
+  const k = r === 'MARKETS' ? 'GLOBAL' : r;
+  counts[k] = (counts[k] ?? 0) + 1;
+}
+Object.entries(counts).sort((a, b) => b[1] - a[1]).forEach(([r, n], i) => {
+  const x = 8 + i * 92;
+  text(r + ' ' + n, x, IY + 20, 1, INK, true);
+  rect(x, IY + 30, n * 9, 7, catColor("CONFLICT"));
+});
+
+// Footer
+rect(8, 968, PAGE_W - 16, 2, RULE);
+data.sources.split(' | ').forEach((l, k) => center(l, 974 + k * 11, 1, INK, true));
+center(data.policy, 998, 1, GREY, true);
+center('* = SINGLE SOURCE  -  SUMMARIES WRITTEN IN OUR OWN WORDS', 1010, 1, GREY);
 
 // ---- PNG encoding ----
 const CRC = new Int32Array(256).map((_, n) => { let c = n; for (let k = 0; k < 8; k++) c = c & 1 ? 0xedb88320 ^ (c >>> 1) : c >>> 1; return c; });
@@ -230,6 +376,7 @@ function chunk(type: string, body: Uint8Array): Buffer {
   out.writeUInt32BE(crc32(out.subarray(4, 8 + body.length)), 8 + body.length);
   return out;
 }
+px = page; W = PAGE_W; H = PAGE_H;
 const raw = Buffer.alloc((W * 3 + 1) * H);
 for (let y = 0; y < H; y++) { raw[y * (W * 3 + 1)] = 0; Buffer.from(px.buffer, y * W * 3, W * 3).copy(raw, y * (W * 3 + 1) + 1); }
 const ihdr = Buffer.alloc(13);
