@@ -1,0 +1,33 @@
+{
+  "date": "FRIDAY 20 NOVEMBER 2026",
+  "stories": [
+    { "region": "EUROPE - UKRAINE", "icon": "bridge", "color": "#C0392B",
+      "title": "RUSSIA HITS KYIV BRIDGES",
+      "text": "Overnight drones and missiles kill several people and hit three Kyiv bridges. Poland probes an airspace breach." },
+    { "region": "TURKIYE - CLIMATE", "icon": "thermo", "color": "#D35400",
+      "title": "COP31 TALKS OVERRUN",
+      "text": "Antalya summit misses its Friday close. A draft that leaves out fossil fuels splits nations." },
+    { "region": "EUROPE - DIPLOMACY", "icon": "rings", "color": "#1F4E99",
+      "title": "UK AND EU HOLD SUMMIT",
+      "text": "Leaders meet to rebuild ties strained by Brexit, with trade and security on the table." },
+    { "region": "SOUTH ASIA - WEATHER", "icon": "cyclone", "color": "#117A8B",
+      "title": "CYCLONE AKVAN HITS INDIA",
+      "text": "Storm makes landfall near Gopalpur, Odisha, bringing heavy rain to the east coast." },
+    { "region": "SOUTH AMERICA - QUAKE", "icon": "quake", "color": "#7D5A3C",
+      "title": "M6.7 EARTHQUAKE IN PERU",
+      "text": "Deep quake in Junin cracks a hospital and cuts power. No injuries were reported." },
+    { "region": "ASIA - JUSTICE", "icon": "scales", "color": "#6C3483",
+      "title": "CALLS FOR MYANMAR SANCTIONS",
+      "text": "Rights groups react after the World Court ruled 9-6 that Myanmar committed genocide against Rohingya." },
+    { "region": "USA - MIDDLE EAST", "icon": "vote", "color": "#283747",
+      "title": "IRAN WAR CURB FAILS",
+      "text": "Senate rejects war powers resolution 51-48. The Pentagon puts the war's cost above $48 billion." },
+    { "region": "ASIA-PACIFIC - TECH", "icon": "chip", "color": "#1E8449",
+      "title": "AUSTRALIA AND CHINA TO TALK AI",
+      "text": "PM Albanese and Premier Li Qiang agree to open talks on artificial intelligence in Beijing." },
+    { "region": "MARKETS - TECH", "icon": "chart", "color": "#B7950B",
+      "title": "RECORD AI IPO IN FOCUS",
+      "text": "Anthropic shares trade a day after the biggest stock market debut on record." }
+  ],
+  "footer": "SOURCES: AP, NPR, DEMOCRACY NOW, AL JAZEERA, RFA. TEXT AND ICONS MADE IN CODE."
+}
