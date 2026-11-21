@@ -3,307 +3,79 @@
   "subtitle": "KYIV BRIDGES HIT - WALL STREET IN CORRECTION - COP31 OVERRUNS - UK-EU SUMMIT",
   "edition": "37 STORIES - 8 REGIONS - EVENTS OF 20 NOV IN ANY TIME ZONE - * = ONE SOURCE",
   "cats": {
-    "CONFLICT": "#D55E00",
-    "DIPLOMACY": "#0072B2",
-    "MARKETS": "#B07A00",
-    "CLIMATE": "#009E73",
-    "JUSTICE": "#CC79A7",
-    "SECURITY": "#3A8FC4",
-    "SOCIETY": "#666666"
+    "CONFLICT": "#D55E00", "DIPLOMACY": "#0072B2", "MARKETS": "#B07A00",
+    "CLIMATE": "#009E73", "JUSTICE": "#CC79A7", "SECURITY": "#3A8FC4", "SOCIETY": "#666666"
   },
   "numbers": [
-    {
-      "n": "8",
-      "cap": "KILLED IN KYIV",
-      "src": "JS, DN"
-    },
-    {
-      "n": "-3.7%",
-      "cap": "S&P 500 DAY",
-      "src": "CN, EB"
-    },
-    {
-      "n": "-14%",
-      "cap": "NVIDIA SHARES",
-      "src": "CN, EB"
-    },
-    {
-      "n": "3",
-      "cap": "OBJECTS OVER POLAND",
-      "src": "JS, OC"
-    },
-    {
-      "n": "100K",
-      "cap": "UK-EU YOUTH VISAS",
-      "src": "JS, OC"
-    },
-    {
-      "n": "$48BN",
-      "cap": "US IRAN WAR COST",
-      "src": "DN, OC"
-    }
+    { "n": "8", "cap": "KILLED IN KYIV", "src": "JS, DN" },
+    { "n": "-3.7%", "cap": "S&P 500 DAY", "src": "CN, EB" },
+    { "n": "-14%", "cap": "NVIDIA SHARES", "src": "CN, EB" },
+    { "n": "3", "cap": "OBJECTS OVER POLAND", "src": "JS, OC" },
+    { "n": "100K", "cap": "UK-EU YOUTH VISAS", "src": "JS, OC" },
+    { "n": "$48BN", "cap": "US IRAN WAR COST", "src": "DN, OC" }
   ],
   "hero": {
-    "region": "EUROPE",
-    "cat": "CONFLICT",
-    "icon": "bridge",
-    "lon": 30.5,
-    "lat": 50.4,
+    "region": "EUROPE", "cat": "CONFLICT", "icon": "bridge", "lon": 30.5, "lat": 50.4,
     "title": "RUSSIAN STRIKES HIT KYIV BRIDGES",
     "text": "Overnight drones and missiles struck three bridges in Kyiv and killed 8 people there, the mayor said. A strike on Lviv rail station killed 2 and 28 were hurt across nine regions. Poland said Russia breached its airspace.",
     "src": "JS, DN, AP"
   },
   "tiles": [
-    {
-      "region": "GLOBAL",
-      "cat": "MARKETS",
-      "icon": "chart",
-      "lon": -74,
-      "lat": 40.7,
-      "title": "WALL ST ENTERS CORRECTION",
-      "text": "S&P 500 fell 3.7%, Nasdaq 5.3%; Nvidia lost 14% on a report of SEC scrutiny.",
-      "src": "CN, EB"
-    },
-    {
-      "region": "GLOBAL",
-      "cat": "CLIMATE",
-      "icon": "thermo",
-      "lon": 30.7,
-      "lat": 36.9,
-      "title": "COP31 MISSES DEADLINE",
-      "text": "Antalya talks run past Friday's close, split over a draft with no fossil fuel line.",
-      "src": "DN, NBA"
-    },
-    {
-      "region": "EUROPE",
-      "cat": "DIPLOMACY",
-      "icon": "rings",
-      "lon": 4.4,
-      "lat": 50.8,
-      "title": "UK-EU SUMMIT IN BRUSSELS",
-      "text": "Youth visa scheme of up to 100,000 a year on the table; tuition row unresolved.",
-      "src": "JS, OC, AP"
-    },
-    {
-      "region": "EUROPE",
-      "cat": "SECURITY",
-      "icon": "shield",
-      "lon": 19,
-      "lat": 52,
-      "title": "POLAND REPORTS INCURSION",
-      "text": "Two missiles and a drone entered Polish airspace during the Russian strikes.",
-      "src": "JS, OC, DN"
-    },
-    {
-      "region": "MIDEAST",
-      "cat": "SECURITY",
-      "icon": "shield",
-      "lon": 44.2,
-      "lat": 32.8,
-      "title": "IRAQ TROOPS ENTER JURF",
-      "text": "Forces deploy into a Kataib Hezbollah stronghold under a compromise deal.",
-      "src": "JS, OC"
-    },
-    {
-      "region": "MIDEAST",
-      "cat": "CONFLICT",
-      "icon": "ship",
-      "lon": 43,
-      "lat": 14.8,
-      "title": "HODEIDAH PORT STRUCK",
-      "text": "Saudi-led coalition hits Yemen port; Houthis threaten Saudi Red Sea ports.",
-      "src": "ToI, CN, OC"
-    },
-    {
-      "region": "ASIA",
-      "cat": "JUSTICE",
-      "icon": "scales",
-      "lon": 96,
-      "lat": 19.7,
-      "title": "MYANMAR REJECTS ICJ RULING",
-      "text": "Government calls the 9-6 genocide finding unfair; rights groups seek sanctions.",
-      "src": "JS, ToI"
-    },
-    {
-      "region": "S ASIA",
-      "cat": "CLIMATE",
-      "icon": "cyclone",
-      "lon": 84.9,
-      "lat": 19.3,
-      "title": "CYCLONE AKVAN LANDS",
-      "text": "Storm makes landfall near Gopalpur in Odisha, India, with heavy rain.",
-      "src": "OC, NBA"
-    },
-    {
-      "region": "E ASIA",
-      "cat": "MARKETS",
-      "icon": "chart",
-      "lon": 121.5,
-      "lat": 25,
-      "title": "ASIA SHARES SLUMP",
-      "text": "Taiwan's TAIEX fell 6.2%, Kospi 5.2% and the Nikkei 5.1%.",
-      "src": "CN *"
-    },
-    {
-      "region": "AMERICAS",
-      "cat": "CONFLICT",
-      "icon": "shield",
-      "lon": -72.3,
-      "lat": 18.5,
-      "title": "HAITI GANG RAID",
-      "text": "Police say 34 suspected gang members were killed in Port-au-Prince.",
-      "src": "OC *"
-    },
-    {
-      "region": "OCEANIA",
-      "cat": "SECURITY",
-      "icon": "shield",
-      "lon": 151.2,
-      "lat": -33.9,
-      "title": "SYDNEY TERROR CHARGE",
-      "text": "Man charged after police raids across 10 suburbs of Sydney.",
-      "src": "ToI/AFP *"
-    },
-    {
-      "region": "E ASIA",
-      "cat": "SOCIETY",
-      "icon": "cross",
-      "lon": 127,
-      "lat": 37.5,
-      "title": "S KOREA CHOLERA CASE",
-      "text": "First confirmed case of cholera in the country in about a decade.",
-      "src": "OC *"
-    }
+    { "region": "GLOBAL", "cat": "MARKETS", "icon": "chart", "lon": -74, "lat": 40.7, "title": "WALL ST ENTERS CORRECTION",
+      "text": "S&P 500 fell 3.7%, Nasdaq 5.3%; Nvidia lost 14% on a report of SEC scrutiny.", "src": "CN, EB" },
+    { "region": "GLOBAL", "cat": "CLIMATE", "icon": "thermo", "lon": 30.7, "lat": 36.9, "title": "COP31 MISSES DEADLINE",
+      "text": "Antalya talks run past Friday's close, split over a draft with no fossil fuel line.", "src": "DN, NBA" },
+    { "region": "EUROPE", "cat": "DIPLOMACY", "icon": "rings", "lon": 4.4, "lat": 50.8, "title": "UK-EU SUMMIT IN BRUSSELS",
+      "text": "Youth visa scheme of up to 100,000 a year on the table; tuition row unresolved.", "src": "JS, OC, AP" },
+    { "region": "EUROPE", "cat": "SECURITY", "icon": "shield", "lon": 19, "lat": 52, "title": "POLAND REPORTS INCURSION",
+      "text": "Two missiles and a drone entered Polish airspace during the Russian strikes.", "src": "JS, OC, DN" },
+    { "region": "MIDEAST", "cat": "SECURITY", "icon": "shield", "lon": 44.2, "lat": 32.8, "title": "IRAQ TROOPS ENTER JURF",
+      "text": "Forces deploy into a Kataib Hezbollah stronghold under a compromise deal.", "src": "JS, OC" },
+    { "region": "MIDEAST", "cat": "CONFLICT", "icon": "ship", "lon": 43, "lat": 14.8, "title": "HODEIDAH PORT STRUCK",
+      "text": "Saudi-led coalition hits Yemen port; Houthis threaten Saudi Red Sea ports.", "src": "ToI, CN, OC" },
+    { "region": "ASIA", "cat": "JUSTICE", "icon": "scales", "lon": 96, "lat": 19.7, "title": "MYANMAR REJECTS ICJ RULING",
+      "text": "Government calls the 9-6 genocide finding unfair; rights groups seek sanctions.", "src": "JS, ToI" },
+    { "region": "S ASIA", "cat": "CLIMATE", "icon": "cyclone", "lon": 84.9, "lat": 19.3, "title": "CYCLONE AKVAN LANDS",
+      "text": "Storm makes landfall near Gopalpur in Odisha, India, with heavy rain.", "src": "OC, NBA" },
+    { "region": "E ASIA", "cat": "MARKETS", "icon": "chart", "lon": 121.5, "lat": 25, "title": "ASIA SHARES SLUMP",
+      "text": "Taiwan's TAIEX fell 6.2%, Kospi 5.2% and the Nikkei 5.1%.", "src": "CN *" },
+    { "region": "AMERICAS", "cat": "CONFLICT", "icon": "shield", "lon": -72.3, "lat": 18.5, "title": "HAITI GANG RAID",
+      "text": "Police say 34 suspected gang members were killed in Port-au-Prince.", "src": "OC *" },
+    { "region": "OCEANIA", "cat": "SECURITY", "icon": "shield", "lon": 151.2, "lat": -33.9, "title": "SYDNEY TERROR CHARGE",
+      "text": "Man charged after police raids across 10 suburbs of Sydney.", "src": "ToI/AFP *" },
+    { "region": "E ASIA", "cat": "SOCIETY", "icon": "cross", "lon": 127, "lat": 37.5, "title": "S KOREA CHOLERA CASE",
+      "text": "First confirmed case of cholera in the country in about a decade.", "src": "OC *" }
   ],
   "also": [
-    {
-      "t": "Ukraine drones hit Dorogobuzh chemical plant, Russia",
-      "src": "OC, ToI",
-      "region": "EUROPE"
-    },
-    {
-      "t": "Russia calls Estonia border shutdown a new Iron Curtain",
-      "src": "JS",
-      "region": "EUROPE"
-    },
-    {
-      "t": "Merz rejects a 'new Yalta' deal made without Europe",
-      "src": "OC, ASAS",
-      "region": "EUROPE"
-    },
-    {
-      "t": "UK general confirms offensive cyber ops vs Russia, Iran",
-      "src": "JS",
-      "region": "EUROPE"
-    },
-    {
-      "t": "Denmark approves Greenland-US Arctic security pact",
-      "src": "OC",
-      "region": "EUROPE"
-    },
-    {
-      "t": "Pentagon puts cost of US Iran campaign near $48bn",
-      "src": "DN, OC",
-      "region": "MIDEAST"
-    },
-    {
-      "t": "Trump says Iran's latest offer is not acceptable",
-      "src": "ToI",
-      "region": "AMERICAS"
-    },
-    {
-      "t": "Tanker incidents near Hormuz about one a day in Nov",
-      "src": "CN, OC",
-      "region": "MIDEAST"
-    },
-    {
-      "t": "Board of Peace warns it may hand Gaza role to UN",
-      "src": "ToI",
-      "region": "MIDEAST"
-    },
-    {
-      "t": "Coordinator shoots unarmed Palestinian, West Bank",
-      "src": "ToI",
-      "region": "MIDEAST"
-    },
-    {
-      "t": "Netanyahu pushes for a national unity government",
-      "src": "ToI",
-      "region": "MIDEAST"
-    },
-    {
-      "t": "Somalia orders UAE ambassador out within 72 hours",
-      "src": "OC",
-      "region": "AFRICA"
-    },
-    {
-      "t": "Taiwan flags 2,700 China-linked accounts on Meta",
-      "src": "OC",
-      "region": "E ASIA"
-    },
-    {
-      "t": "Japan and India agree to widen defence ties",
-      "src": "OC",
-      "region": "S ASIA"
-    },
-    {
-      "t": "Japan core inflation 2.2% in October",
-      "src": "OC",
-      "region": "E ASIA"
-    },
-    {
-      "t": "China holds benchmark loan rates, 18th month",
-      "src": "OC",
-      "region": "E ASIA"
-    },
-    {
-      "t": "Australia and China agree to hold talks on AI",
-      "src": "NBA",
-      "region": "OCEANIA"
-    },
-    {
-      "t": "Thailand sets arsenic plan for Kok, Sai rivers",
-      "src": "NBA",
-      "region": "SE ASIA"
-    },
-    {
-      "t": "M6.7 deep quake in Junin, Peru; no injuries",
-      "src": "NBA",
-      "region": "AMERICAS"
-    },
-    {
-      "t": "Anthropic shares fall 8.5% in first full session",
-      "src": "CN",
-      "region": "GLOBAL"
-    },
-    {
-      "t": "Bitcoin drops below $60,000; VIX jumps to 35.9",
-      "src": "CN, NBA",
-      "region": "GLOBAL"
-    },
-    {
-      "t": "US cyber director Sean Cairncross leaving post",
-      "src": "ToI, EB",
-      "region": "AMERICAS"
-    },
-    {
-      "t": "Save the Children: 1 in 4 children in conflict zones",
-      "src": "DN",
-      "region": "GLOBAL"
-    },
-    {
-      "t": "Cincinnati Zoo's hippo Fiona dies after eating hat",
-      "src": "AP, OC",
-      "region": "AMERICAS"
-    }
+    { "t": "Ukraine drones hit Dorogobuzh chemical plant, Russia", "src": "OC, ToI", "region": "EUROPE" },
+    { "t": "Russia calls Estonia border shutdown a new Iron Curtain", "src": "JS", "region": "EUROPE" },
+    { "t": "Merz rejects a 'new Yalta' deal made without Europe", "src": "OC, ASAS", "region": "EUROPE" },
+    { "t": "UK general confirms offensive cyber ops vs Russia, Iran", "src": "JS", "region": "EUROPE" },
+    { "t": "Denmark approves Greenland-US Arctic security pact", "src": "OC", "region": "EUROPE" },
+    { "t": "Pentagon puts cost of US Iran campaign near $48bn", "src": "DN, OC", "region": "MIDEAST" },
+    { "t": "Trump says Iran's latest offer is not acceptable", "src": "ToI", "region": "AMERICAS" },
+    { "t": "Tanker incidents near Hormuz about one a day in Nov", "src": "CN, OC", "region": "MIDEAST" },
+    { "t": "Board of Peace warns it may hand Gaza role to UN", "src": "ToI", "region": "MIDEAST" },
+    { "t": "Coordinator shoots unarmed Palestinian, West Bank", "src": "ToI", "region": "MIDEAST" },
+    { "t": "Netanyahu pushes for a national unity government", "src": "ToI", "region": "MIDEAST" },
+    { "t": "Somalia orders UAE ambassador out within 72 hours", "src": "OC", "region": "AFRICA" },
+    { "t": "Taiwan flags 2,700 China-linked accounts on Meta", "src": "OC", "region": "E ASIA" },
+    { "t": "Japan and India agree to widen defence ties", "src": "OC", "region": "S ASIA" },
+    { "t": "Japan core inflation 2.2% in October", "src": "OC", "region": "E ASIA" },
+    { "t": "China holds benchmark loan rates, 18th month", "src": "OC", "region": "E ASIA" },
+    { "t": "Australia and China agree to hold talks on AI", "src": "NBA", "region": "OCEANIA" },
+    { "t": "Thailand sets arsenic plan for Kok, Sai rivers", "src": "NBA", "region": "SE ASIA" },
+    { "t": "M6.7 deep quake in Junin, Peru; no injuries", "src": "NBA", "region": "AMERICAS" },
+    { "t": "Anthropic shares fall 8.5% in first full session", "src": "CN", "region": "GLOBAL" },
+    { "t": "Bitcoin drops below $60,000; VIX jumps to 35.9", "src": "CN, NBA", "region": "GLOBAL" },
+    { "t": "US cyber director Sean Cairncross leaving post", "src": "ToI, EB", "region": "AMERICAS" },
+    { "t": "Save the Children: 1 in 4 children in conflict zones", "src": "DN", "region": "GLOBAL" },
+    { "t": "Cincinnati Zoo's hippo Fiona dies after eating hat", "src": "AP, OC", "region": "AMERICAS" }
   ],
   "datecheck": [
-    "ICJ Myanmar genocide ruling - 19 Nov",
-    "Senate Iran war powers vote - 19 Nov",
-    "Anthropic IPO debut - 19 Nov",
-    "Trump-Xi-Putin statement - 18/19 Nov",
-    "Estonia border closure call - 15 Nov",
-    "Texas execution (Dennes) - 19 Nov"
+    "ICJ Myanmar genocide ruling - 19 Nov", "Senate Iran war powers vote - 19 Nov",
+    "Anthropic IPO debut - 19 Nov", "Trump-Xi-Putin statement - 18/19 Nov",
+    "Estonia border closure call - 15 Nov", "Texas execution (Dennes) - 19 Nov"
   ],
   "sources": "SOURCES: AP=AP TOP STORIES  DN=DEMOCRACY NOW  JS=JUST SECURITY  ToI=TIMES OF ISRAEL  OC=OPEN CHRONICLE | CN=CAPPNOTES  EB=EVERYTHING BRIEFING  ASAS=ASAS PRESS  NBA=NEWSBYAGENTS",
   "policy": "CORRECTIONS POLICY: EVERY FIGURE IS AS REPORTED BY THE CITED SOURCES ON 20 NOV 2026. TEXT, MAP AND ICONS MADE IN CODE."
