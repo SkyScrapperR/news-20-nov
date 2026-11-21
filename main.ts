@@ -327,27 +327,28 @@ Object.keys(data.cats).forEach((c, i) => {
   text(c, x + 13, y, 1.25, INK, true);
 });
 
-// 12 illustrated tiles (stories 2-13)
+// 8 large illustrated tiles (stories 2-9)
+const NT = data.tiles.length;
 data.tiles.forEach((t, i) => {
-  const x = 8 + (i % 4) * 254, y = 378 + Math.floor(i / 4) * 128;
+  const x = 8 + (i % 4) * 254, y = 378 + Math.floor(i / 4) * 170;
   const c = catColor(t.cat);
-  rect(x, y, 246, 122, CARD);
-  rect(x, y, 246, 16, c);
-  text(String(i + 2) + '  ' + t.region + ' - ' + t.cat, x + 6, y + 4, 1.25, WHITE, true);
-  smallIcon(t.icon, x + 6, y + 21, 52, c, CARD);
-  const head = wrap(t.title, 14);
-  head.forEach((l, k) => text(l, x + 64, y + 22 + k * 18, 2, INK, true));
-  text(cite(t.src), x + 64, y + 26 + head.length * 18, 1, GREY, true);
-  wrap(t.text, 26).forEach((l, k) => text(l, x + 6, y + 78 + k * 13, 1.5, INK, true));
+  rect(x, y, 246, 164, CARD);
+  rect(x, y, 246, 20, c);
+  text(String(i + 2) + '  ' + t.region + ' - ' + t.cat, x + 6, y + 5, 1.5, WHITE, true);
+  smallIcon(t.icon, x + 6, y + 28, 62, c, CARD);
+  const head = wrap(t.title, 10);
+  head.forEach((l, k) => text(l, x + 76, y + 27 + k * 22, 2.5, INK, true));
+  text(cite(t.src), x + 76, y + 31 + head.length * 22, 1.25, GREY, true);
+  wrap(t.text, 26).forEach((l, k) => text(l, x + 6, y + 112 + k * 15, 1.5, INK, true));
 });
 
-// Also on 20 November (stories 14-37), two columns read top to bottom
-const LY = 762;
+// Also on 20 November (stories after the tiles), two columns read top to bottom
+const LY = 722, PER = Math.ceil(data.also.length / 2);
 rect(8, LY, PAGE_W - 16, 2, RULE);
 text('ALSO ON 20 NOVEMBER', 8, LY + 6, 2, INK, true);
 data.also.forEach((a, i) => {
-  const x = 8 + Math.floor(i / 12) * 508, y = LY + 26 + (i % 12) * 13;
-  const n = String(i + 14), src = cite(a.src);
+  const x = 8 + Math.floor(i / PER) * 508, y = LY + 26 + (i % PER) * 13;
+  const n = String(i + NT + 2), src = cite(a.src);
   const s = (n.length + a.t.length + src.length + 2) * 9 <= 500 ? 1.5 : 1.25;
   text(n, x, y, s, RED, true);
   text(a.t, x + (n.length + 1) * 6 * s, y, s, INK, true);
@@ -358,12 +359,12 @@ data.also.forEach((a, i) => {
 const counts: Record<string, number> = {};
 for (const r of [hero.region, ...data.tiles.map((t) => t.region), ...data.also.map((a) => a.region)]) counts[r] = (counts[r] ?? 0) + 1;
 const regionLine = 'STORIES BY REGION: ' + Object.entries(counts).sort((a, b) => b[1] - a[1]).map(([r, n]) => r + ' ' + n).join(', ');
-text(regionLine, 8, 950, 1.25, INK, true);
+text(regionLine, 8, 940, 1.25, INK, true);
 
 // Footer: sources and policy
-rect(8, 964, PAGE_W - 16, 2, RULE);
-data.sources.forEach((l, k) => center(l, 971 + k * 11, 1.25, INK, true));
-data.policy.forEach((l, k) => center(l, 996 + k * 11, 1.25, GREY, true));
+rect(8, 956, PAGE_W - 16, 2, RULE);
+data.sources.forEach((l, k) => center(l, 963 + k * 11, 1.25, INK, true));
+data.policy.forEach((l, k) => center(l, 988 + k * 11, 1.25, GREY, true));
 
 // ---- PNG encoding ----
 const CRC = new Int32Array(256).map((_, n) => { let c = n; for (let k = 0; k < 8; k++) c = c & 1 ? 0xedb88320 ^ (c >>> 1) : c >>> 1; return c; });
@@ -384,32 +385,32 @@ for (let y = 0; y < PAGE_H; y++) for (let x = 0; x < PAGE_W; x++) for (let ch = 
   OUT[(y * PAGE_W + x) * 3 + ch] = Math.floor((sum + (SS * SS) / 2) / (SS * SS));
 }
 px = OUT; W = PAGE_W; H = PAGE_H;
-// Per-row PNG filter choice (None, Sub, Up, Average, Paeth), smallest absolute residual wins: a smaller file.
-const stride = W * 3;
-const raw = Buffer.alloc((stride + 1) * H);
-const paeth = (a: number, b: number, c: number) => {
-  const p = a + b - c, pa = Math.abs(p - a), pb = Math.abs(p - b), pc = Math.abs(p - c);
-  return pa <= pb && pa <= pc ? a : pb <= pc ? b : c;
-};
-// One filter for the whole image; each of the five is tried and the smallest compressed stream is kept.
-function filtered(f: number): Buffer {
-  for (let y = 0; y < H; y++) {
-    raw[y * (stride + 1)] = f;
-    for (let i = 0; i < stride; i++) {
-      const v = px[y * stride + i], a = i >= 3 ? px[y * stride + i - 3] : 0;
-      const b = y ? px[(y - 1) * stride + i] : 0, c = y && i >= 3 ? px[(y - 1) * stride + i - 3] : 0;
-      const p = f === 0 ? 0 : f === 1 ? a : f === 2 ? b : f === 3 ? (a + b) >> 1 : paeth(a, b, c);
-      raw[y * (stride + 1) + 1 + i] = (v - p) & 255;
-    }
-  }
-  return deflateSync(raw, { level: 9, memLevel: 9 });
+// Indexed colour for a small file: the 256 most frequent colours form the palette (ties broken by value, so the
+// result is deterministic); any other colour maps to its nearest palette entry.
+const key = (i: number) => (px[i * 3] << 16) | (px[i * 3 + 1] << 8) | px[i * 3 + 2];
+const freq = new Map<number, number>();
+for (let i = 0; i < W * H; i++) freq.set(key(i), (freq.get(key(i)) ?? 0) + 1);
+const pal = [...freq.entries()].sort((a, b) => b[1] - a[1] || a[0] - b[0]).slice(0, 256).map((e) => e[0]);
+const slot = new Map<number, number>(pal.map((k, i) => [k, i]));
+function nearest(k: number): number {
+  let best = slot.get(k);
+  if (best !== undefined) return best;
+  let bd = Infinity;
+  pal.forEach((q, i) => {
+    const d = ((k >> 16) - (q >> 16)) ** 2 + (((k >> 8) & 255) - ((q >> 8) & 255)) ** 2 + ((k & 255) - (q & 255)) ** 2;
+    if (d < bd) { bd = d; best = i; }
+  });
+  slot.set(k, best!);
+  return best!;
 }
-let idat = filtered(0);
-for (let f = 1; f < 5; f++) { const z = filtered(f); if (z.length < idat.length) idat = z; }
+const raw = Buffer.alloc((W + 1) * H);
+for (let y = 0; y < H; y++) for (let x = 0; x < W; x++) raw[y * (W + 1) + 1 + x] = nearest(key(y * W + x));
+const plte = Buffer.alloc(pal.length * 3);
+pal.forEach((k, i) => { plte[i * 3] = k >> 16; plte[i * 3 + 1] = (k >> 8) & 255; plte[i * 3 + 2] = k & 255; });
 const ihdr = Buffer.alloc(13);
-ihdr.writeUInt32BE(W, 0); ihdr.writeUInt32BE(H, 4); ihdr[8] = 8; ihdr[9] = 2;
+ihdr.writeUInt32BE(W, 0); ihdr.writeUInt32BE(H, 4); ihdr[8] = 8; ihdr[9] = 3;
 const png = Buffer.concat([
   Buffer.from([137, 80, 78, 71, 13, 10, 26, 10]),
-  chunk('IHDR', ihdr), chunk('IDAT', idat), chunk('IEND', new Uint8Array(0)),
+  chunk('IHDR', ihdr), chunk('PLTE', plte), chunk('IDAT', deflateSync(raw, { level: 9, memLevel: 9 })), chunk('IEND', new Uint8Array(0)),
 ]);
 writeFileSync(join(process.env.MAKEFUN_OUTPUT_DIR ?? '/output', 'entry.png'), png);
