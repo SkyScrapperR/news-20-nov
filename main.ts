@@ -10,19 +10,22 @@ type RGB = [number, number, number];
 type Story = { region: string; icon: string; color: string; title: string; text: string };
 
 // Everything draws into the current target: the page, or an offscreen buffer that is later shrunk (smooth icons).
+// The page is drawn 4x supersampled (S = 4) and averaged down at the end, so shapes and text come out anti-aliased.
 const PAGE_W = 1024;
 const PAGE_H = 1024;
-const page = new Uint8Array(PAGE_W * PAGE_H * 3);
+const SS = 4;
+const page = new Uint8Array(PAGE_W * SS * PAGE_H * SS * 3);
 let px = page;
-let W = PAGE_W;
-let H = PAGE_H;
+let W = PAGE_W * SS;
+let H = PAGE_H * SS;
+let S = SS;
 function offscreen(w: number, h: number, bg: RGB, draw: () => void): Uint8Array {
-  const keep = [px, W, H] as const;
-  px = new Uint8Array(w * h * 3); W = w; H = h;
+  const keep = [px, W, H, S] as const;
+  px = new Uint8Array(w * h * 3); W = w; H = h; S = 1;
   for (let i = 0; i < w * h; i++) { px[i * 3] = bg[0]; px[i * 3 + 1] = bg[1]; px[i * 3 + 2] = bg[2]; }
   draw();
   const out = px;
-  [px, W, H] = keep;
+  [px, W, H, S] = keep;
   return out;
 }
 // Area-average a square offscreen buffer of side `sw` down to side `dw` at (dx, dy) on the current target.
@@ -40,47 +43,56 @@ function shrink(src: Uint8Array, sw: number, dx: number, dy: number, dw: number)
 const hex = (h: string): RGB => [parseInt(h.slice(1, 3), 16), parseInt(h.slice(3, 5), 16), parseInt(h.slice(5, 7), 16)];
 const mix = (a: RGB, b: RGB, t: number): RGB => [0, 1, 2].map((i) => Math.round(a[i] + (b[i] - a[i]) * t)) as RGB;
 
-function set(x: number, y: number, c: RGB): void {
-  x = Math.round(x); y = Math.round(y);
-  if (x < 0 || y < 0 || x >= W || y >= H) return;
-  const i = (y * W + x) * 3;
+// put() writes one target pixel; every other primitive takes page coordinates and works at the target's S.
+function put(X: number, Y: number, c: RGB): void {
+  if (X < 0 || Y < 0 || X >= W || Y >= H) return;
+  const i = (Y * W + X) * 3;
   px[i] = c[0]; px[i + 1] = c[1]; px[i + 2] = c[2];
+}
+function set(x: number, y: number, c: RGB): void {
+  const X = Math.round(x) * S, Y = Math.round(y) * S;
+  for (let j = 0; j < S; j++) for (let i = 0; i < S; i++) put(X + i, Y + j, c);
 }
 
 function rect(x: number, y: number, w: number, h: number, c: RGB): void {
-  for (let j = Math.max(0, y); j < Math.min(H, y + h); j++) for (let i = Math.max(0, x); i < Math.min(W, x + w); i++) set(i, j, c);
+  const x0 = Math.max(0, Math.round(x * S)), x1 = Math.min(W, Math.round((x + w) * S));
+  const y0 = Math.max(0, Math.round(y * S)), y1 = Math.min(H, Math.round((y + h) * S));
+  for (let j = y0; j < y1; j++) for (let i = x0; i < x1; i++) put(i, j, c);
 }
 
 function disc(cx: number, cy: number, r: number, c: RGB): void {
-  for (let j = Math.floor(cy - r); j <= Math.ceil(cy + r); j++)
-    for (let i = Math.floor(cx - r); i <= Math.ceil(cx + r); i++)
-      if ((i - cx) ** 2 + (j - cy) ** 2 <= r * r) set(i, j, c);
+  const X = cx * S, Y = cy * S, R = r * S;
+  for (let j = Math.floor(Y - R); j <= Math.ceil(Y + R); j++)
+    for (let i = Math.floor(X - R); i <= Math.ceil(X + R); i++)
+      if ((i + 0.5 - X) ** 2 + (j + 0.5 - Y) ** 2 <= R * R) put(i, j, c);
 }
 
 function ring(cx: number, cy: number, r: number, t: number, c: RGB): void {
-  for (let j = Math.floor(cy - r); j <= Math.ceil(cy + r); j++)
-    for (let i = Math.floor(cx - r); i <= Math.ceil(cx + r); i++) {
-      const d = Math.sqrt((i - cx) ** 2 + (j - cy) ** 2);
-      if (d <= r && d >= r - t) set(i, j, c);
+  const X = cx * S, Y = cy * S, R = r * S, T = t * S;
+  for (let j = Math.floor(Y - R); j <= Math.ceil(Y + R); j++)
+    for (let i = Math.floor(X - R); i <= Math.ceil(X + R); i++) {
+      const d = Math.sqrt((i + 0.5 - X) ** 2 + (j + 0.5 - Y) ** 2);
+      if (d <= R && d >= R - T) put(i, j, c);
     }
 }
 
 function line(x0: number, y0: number, x1: number, y1: number, t: number, c: RGB): void {
-  const n = Math.max(1, Math.ceil(Math.hypot(x1 - x0, y1 - y0)));
+  const n = Math.max(1, Math.ceil(Math.hypot(x1 - x0, y1 - y0) * S / 2));
   for (let k = 0; k <= n; k++) disc(x0 + ((x1 - x0) * k) / n, y0 + ((y1 - y0) * k) / n, t / 2, c);
 }
 
 function poly(pts: number[][], c: RGB): void {
-  const ys = pts.map((p) => p[1]);
-  for (let y = Math.floor(Math.min(...ys)); y <= Math.ceil(Math.max(...ys)); y++) {
-    const xs: number[] = [];
-    for (let k = 0; k < pts.length; k++) {
-      const [ax, ay] = pts[k];
-      const [bx, by] = pts[(k + 1) % pts.length];
-      if ((ay <= y && by > y) || (by <= y && ay > y)) xs.push(ax + ((y - ay) * (bx - ax)) / (by - ay));
+  const P = pts.map(([x, y]) => [x * S, y * S]);
+  const ys = P.map((p) => p[1]);
+  for (let Y = Math.floor(Math.min(...ys)); Y <= Math.ceil(Math.max(...ys)); Y++) {
+    const yc = Y + 0.5, xs: number[] = [];
+    for (let k = 0; k < P.length; k++) {
+      const [ax, ay] = P[k];
+      const [bx, by] = P[(k + 1) % P.length];
+      if ((ay <= yc && by > yc) || (by <= yc && ay > yc)) xs.push(ax + ((yc - ay) * (bx - ax)) / (by - ay));
     }
     xs.sort((a, b) => a - b);
-    for (let k = 0; k + 1 < xs.length; k += 2) for (let x = Math.ceil(xs[k]); x <= Math.floor(xs[k + 1]); x++) set(x, y, c);
+    for (let k = 0; k + 1 < xs.length; k += 2) for (let X = Math.ceil(xs[k] - 0.5); X <= Math.floor(xs[k + 1] - 0.5); X++) put(X, Y, c);
   }
 }
 
@@ -121,7 +133,7 @@ function text(t: string, x: number, y: number, s: number, c: RGB, bold = false):
   let cx = x;
   for (const ch of t.toUpperCase()) {
     const g = FONT[ch] ?? FONT['?'];
-    for (let r = 0; r < 7; r++) for (let b = 0; b < 5; b++) if (g[r] & (16 >> b)) rect(cx + b * s, y + r * s, s + (bold ? 1 : 0), s, c);
+    for (let r = 0; r < 7; r++) for (let b = 0; b < 5; b++) if (g[r] & (16 >> b)) rect(cx + b * s, y + r * s, s + (bold ? Math.max(0.6, s * 0.3) : 0), s, c);
     cx += adv(s);
   }
 }
@@ -227,64 +239,65 @@ function icon(kind: string, cx: number, cy: number, c: RGB): void {
   }
 }
 
-// ---- layout: masthead, key numbers, hero + map, 12 tiles, list, date check, regional index, footer ----
+// ---- layout v3: masthead, key numbers, hero + date check, map, 12 tiles, 24 briefs, regions, footer ----
+// Text sizes are multiples of 0.25 so every font pixel lands on whole supersampled pixels.
 type Item = { region: string; cat: string; icon: string; lon: number; lat: number; title: string; text: string; src: string };
 const data = JSON.parse(readFileSync(new URL('./news.json', import.meta.url), 'utf8')) as {
   title: string; subtitle: string; edition: string; cats: Record<string, string>;
   numbers: { n: string; cap: string; src: string }[]; hero: Item; tiles: Item[];
-  also: { t: string; src: string; region: string }[]; datecheck: string[]; sources: string; policy: string;
+  also: { t: string; src: string; region: string }[]; datecheck: string[]; sources: string[]; policy: string[];
 };
 const PAPER: RGB = [247, 241, 228];
 const CARD: RGB = [255, 252, 245];
 const RULE: RGB = [60, 52, 44];
-const GREY: RGB = [105, 98, 90];
+const GREY: RGB = [78, 70, 62];
+const RED: RGB = [168, 40, 20];
 const catColor = (c: string): RGB => hex(data.cats[c] ?? '#666666');
 // Sources get a * when a story rests on one outlet only.
-const cite = (s: string) => '[' + s.replace(' *', '') + ']' + (s.replace(' *', '').split(',').length < 2 ? '*' : '');
-const center = (t: string, y: number, s: number, c: RGB, bold = false) => text(t, Math.round((PAGE_W - textW(t, s)) / 2), y, s, c, bold);
+const cite = (s: string) => '[' + s + ']' + (s.split(',').length < 2 ? '*' : '');
+const center = (t: string, y: number, s: number, c: RGB, bold = false) => text(t, (PAGE_W - textW(t, s)) / 2, y, s, c, bold);
 const smallIcon = (kind: string, x: number, y: number, size: number, c: RGB, bg: RGB) =>
   shrink(offscreen(104, 104, bg, () => icon(kind, 52, 52, c)), 104, x, y, size);
 
 rect(0, 0, PAGE_W, PAGE_H, PAPER);
 
 // Masthead
-center(data.title, 10, 4, INK, true);
-rect(8, 46, PAGE_W - 16, 3, RULE); rect(8, 51, PAGE_W - 16, 1, RULE);
-center(data.subtitle, 57, 2, [150, 40, 20], true);
-center(data.edition, 76, 1, GREY, true);
-rect(8, 88, PAGE_W - 16, 1, RULE);
+center(data.title, 8, 4, INK, true);
+rect(8, 44, PAGE_W - 16, 3, RULE); rect(8, 49, PAGE_W - 16, 1, RULE);
+center(data.subtitle, 55, 2, RED, true);
+center(data.edition, 74, 1.25, GREY, true);
+rect(8, 87, PAGE_W - 16, 1, RULE);
 
 // Key numbers
 data.numbers.forEach((k, i) => {
   const x = 8 + i * 168;
-  if (i) rect(x - 1, 94, 1, 54, [200, 190, 175]);
-  text(k.n, x + Math.round((168 - textW(k.n, 4)) / 2), 95, 4, [150, 40, 20], true);
-  text(k.cap, x + Math.round((168 - textW(k.cap, 1)) / 2), 128, 1, INK, true);
+  if (i) rect(x - 1, 92, 1, 52, [200, 190, 175]);
+  text(k.n, x + (168 - textW(k.n, 4)) / 2, 92, 4, RED, true);
+  text(k.cap, x + (168 - textW(k.cap, 1.5)) / 2, 123, 1.5, INK, true);
   const s = '[' + k.src + ']';
-  text(s, x + Math.round((168 - textW(s, 1)) / 2), 139, 1, GREY);
+  text(s, x + (168 - textW(s, 1)) / 2, 137, 1, GREY, true);
 });
-rect(8, 152, PAGE_W - 16, 3, RULE);
+rect(8, 148, PAGE_W - 16, 3, RULE);
 
-// Hero (story 1)
+// Lead story (1) with the date check below it
 const hero = data.hero;
 const hc = catColor(hero.cat);
-rect(8, 160, 496, 232, CARD);
-rect(8, 160, 496, 18, hc);
-text('1  LEAD - ' + hero.region + ' - ' + hero.cat, 14, 166, 1, WHITE, true);
-icon(hero.icon, 72, 246, hc);
-wrap(hero.title, 20).forEach((l, k) => text(l, 140, 190 + k * 26, 3, INK, true));
-const heroBody = wrap(hero.text, 58);
-heroBody.forEach((l, k) => text(l, 140, 250 + k * 12, 1, INK, true));
-text(cite(hero.src), 140, 254 + heroBody.length * 12, 1, GREY);
-// Date check box inside the hero column
-rect(16, 312, 480, 74, [244, 232, 212]);
-rect(16, 312, 3, 74, [150, 40, 20]);
-text('DATE CHECK - LEFT OUT, NOT 20 NOV:', 26, 318, 1, [150, 40, 20], true);
-data.datecheck.forEach((d, k) => text(d, 26 + (k % 2) * 240, 332 + Math.floor(k / 2) * 13, 1, INK, true));
-text('ALL TIMES AS REPORTED; LISTED ITEMS EXCLUDED.', 26, 373, 1, GREY);
+rect(8, 156, 496, 216, CARD);
+rect(8, 156, 496, 18, hc);
+text('1  LEAD - ' + hero.region + ' - ' + hero.cat, 14, 161, 1.25, WHITE, true);
+icon(hero.icon, 70, 236, hc);
+const heroHead = wrap(hero.title, 20);
+heroHead.forEach((l, k) => text(l, 132, 182 + k * 26, 3, INK, true));
+const heroBody = wrap(hero.text, 40);
+heroBody.forEach((l, k) => text(l, 132, 186 + heroHead.length * 26 + k * 13, 1.5, INK, true));
+text(cite(hero.src), 132, 190 + heroHead.length * 26 + heroBody.length * 13, 1.25, GREY, true);
+rect(16, 306, 480, 60, [244, 232, 212]);
+rect(16, 306, 3, 60, RED);
+text('DATE CHECK - LEFT OUT, NOT 20 NOV:', 26, 311, 1.25, RED, true);
+data.datecheck.forEach((d, k) => text(d, 26 + (k % 2) * 236, 326 + Math.floor(k / 2) * 12, 1, INK, true));
 
-// World map with numbered pins
-const MX = 512, MY = 160, MW = 504, MH = 200;
+// World map with numbered pins (stories 1-13)
+const MX = 512, MY = 156, MW = 504, MH = 186;
 const mapX = (lon: number) => MX + ((lon + 180) / 360) * MW;
 const mapY = (lat: number) => MY + ((80 - lat) / 138) * MH;
 rect(MX, MY, MW, MH, [214, 230, 236]);
@@ -301,69 +314,56 @@ const LAND: number[][][] = [
   [[130, 31], [141, 36], [142, 45], [139, 38]],
   [[166, -46], [174, -41], [178, -38], [172, -34]],
 ];
+for (let lo = -150; lo <= 150; lo += 30) rect(mapX(lo), MY, 1, MH, [200, 216, 224]);
 for (const p of LAND) poly(p.map(([lo, la]) => [mapX(lo), mapY(la)]), [196, 186, 160]);
-for (let lo = -150; lo <= 150; lo += 30) rect(Math.round(mapX(lo)), MY, 1, MH, [196, 214, 222]);
-const pins = [hero, ...data.tiles];
-pins.forEach((p, i) => {
-  const x = mapX(p.lon), y = mapY(p.lat);
-  disc(x, y, 8, WHITE); disc(x, y, 7, catColor(p.cat));
-  const lab = String(i + 1);
-  text(lab, Math.round(x - textW(lab, 1) / 2), Math.round(y - 3), 1, WHITE, true);
+[hero, ...data.tiles].forEach((p, i) => {
+  const x = mapX(p.lon), y = mapY(p.lat), lab = String(i + 1);
+  disc(x, y, 8.5, WHITE); disc(x, y, 7.5, catColor(p.cat));
+  text(lab, x - textW(lab, 1) / 2, y - 3.5, 1, WHITE, true);
 });
-// Legend
 Object.keys(data.cats).forEach((c, i) => {
   const x = MX + 4 + (i % 4) * 126, y = MY + MH + 6 + Math.floor(i / 4) * 13;
-  disc(x + 4, y + 3, 4, catColor(c));
-  text(c, x + 12, y, 1, INK, true);
+  disc(x + 4, y + 4, 4.5, catColor(c));
+  text(c, x + 13, y, 1.25, INK, true);
 });
 
 // 12 illustrated tiles (stories 2-13)
 data.tiles.forEach((t, i) => {
-  const x = 8 + (i % 4) * 254, y = 398 + Math.floor(i / 4) * 120;
+  const x = 8 + (i % 4) * 254, y = 378 + Math.floor(i / 4) * 128;
   const c = catColor(t.cat);
-  rect(x, y, 246, 114, CARD);
-  rect(x, y, 246, 15, c);
-  text(String(i + 2) + '  ' + t.region + ' - ' + t.cat, x + 6, y + 4, 1, WHITE, true);
+  rect(x, y, 246, 122, CARD);
+  rect(x, y, 246, 16, c);
+  text(String(i + 2) + '  ' + t.region + ' - ' + t.cat, x + 6, y + 4, 1.25, WHITE, true);
   smallIcon(t.icon, x + 6, y + 21, 52, c, CARD);
-  wrap(t.title, 14).slice(0, 2).forEach((l, k) => text(l, x + 64, y + 23 + k * 18, 2, INK, true));
-  const body = wrap(t.text, 39).slice(0, 3);
-  body.forEach((l, k) => text(l, x + 6, y + 78 + k * 11, 1, INK, true));
-  const s = cite(t.src);
-  text(s, x + 240 - textW(s, 1), y + 23 + 36, 1, GREY);
+  const head = wrap(t.title, 14);
+  head.forEach((l, k) => text(l, x + 64, y + 22 + k * 18, 2, INK, true));
+  text(cite(t.src), x + 64, y + 26 + head.length * 18, 1, GREY, true);
+  wrap(t.text, 26).forEach((l, k) => text(l, x + 6, y + 78 + k * 13, 1.5, INK, true));
 });
 
-// Also on 20 November (stories 14-37)
+// Also on 20 November (stories 14-37), two columns read top to bottom
 const LY = 762;
 rect(8, LY, PAGE_W - 16, 2, RULE);
 text('ALSO ON 20 NOVEMBER', 8, LY + 6, 2, INK, true);
 data.also.forEach((a, i) => {
-  const x = 8 + (i % 2) * 508, y = LY + 25 + Math.floor(i / 2) * 11;
-  const n = String(i + 14).padStart(2, ' ');
-  text(n, x, y, 1, [150, 40, 20], true);
-  text(a.t, x + 18, y, 1, INK, true);
-  text(cite(a.src), x + 18 + textW(a.t, 1) + 6, y, 1, GREY);
+  const x = 8 + Math.floor(i / 12) * 508, y = LY + 26 + (i % 12) * 13;
+  const n = String(i + 14), src = cite(a.src);
+  const s = (n.length + a.t.length + src.length + 2) * 9 <= 500 ? 1.5 : 1.25;
+  text(n, x, y, s, RED, true);
+  text(a.t, x + (n.length + 1) * 6 * s, y, s, INK, true);
+  text(src, x + (n.length + a.t.length + 2) * 6 * s, y, s, GREY, true);
 });
 
-// Regional index
-const IY = 920;
-rect(8, IY, PAGE_W - 16, 1, RULE);
-text('STORIES BY REGION', 8, IY + 6, 1, INK, true);
+// Stories per region, one line
 const counts: Record<string, number> = {};
-for (const r of [hero.region, ...data.tiles.map((t) => t.region), ...data.also.map((a) => a.region)]) {
-  const k = r === 'MARKETS' ? 'GLOBAL' : r;
-  counts[k] = (counts[k] ?? 0) + 1;
-}
-Object.entries(counts).sort((a, b) => b[1] - a[1]).forEach(([r, n], i) => {
-  const x = 8 + i * 92;
-  text(r + ' ' + n, x, IY + 20, 1, INK, true);
-  rect(x, IY + 30, n * 9, 7, catColor("CONFLICT"));
-});
+for (const r of [hero.region, ...data.tiles.map((t) => t.region), ...data.also.map((a) => a.region)]) counts[r] = (counts[r] ?? 0) + 1;
+const regionLine = 'STORIES BY REGION: ' + Object.entries(counts).sort((a, b) => b[1] - a[1]).map(([r, n]) => r + ' ' + n).join(', ');
+text(regionLine, 8, 950, 1.25, INK, true);
 
-// Footer
-rect(8, 968, PAGE_W - 16, 2, RULE);
-data.sources.split(' | ').forEach((l, k) => center(l, 974 + k * 11, 1, INK, true));
-center(data.policy, 998, 1, GREY, true);
-center('* = SINGLE SOURCE  -  SUMMARIES WRITTEN IN OUR OWN WORDS', 1010, 1, GREY);
+// Footer: sources and policy
+rect(8, 964, PAGE_W - 16, 2, RULE);
+data.sources.forEach((l, k) => center(l, 971 + k * 11, 1.25, INK, true));
+data.policy.forEach((l, k) => center(l, 996 + k * 11, 1.25, GREY, true));
 
 // ---- PNG encoding ----
 const CRC = new Int32Array(256).map((_, n) => { let c = n; for (let k = 0; k < 8; k++) c = c & 1 ? 0xedb88320 ^ (c >>> 1) : c >>> 1; return c; });
@@ -376,13 +376,40 @@ function chunk(type: string, body: Uint8Array): Buffer {
   out.writeUInt32BE(crc32(out.subarray(4, 8 + body.length)), 8 + body.length);
   return out;
 }
-px = page; W = PAGE_W; H = PAGE_H;
-const raw = Buffer.alloc((W * 3 + 1) * H);
-for (let y = 0; y < H; y++) { raw[y * (W * 3 + 1)] = 0; Buffer.from(px.buffer, y * W * 3, W * 3).copy(raw, y * (W * 3 + 1) + 1); }
+// Average each SSxSS block of the supersampled page into one output pixel.
+const OUT = new Uint8Array(PAGE_W * PAGE_H * 3);
+for (let y = 0; y < PAGE_H; y++) for (let x = 0; x < PAGE_W; x++) for (let ch = 0; ch < 3; ch++) {
+  let sum = 0;
+  for (let j = 0; j < SS; j++) for (let i = 0; i < SS; i++) sum += page[((y * SS + j) * PAGE_W * SS + x * SS + i) * 3 + ch];
+  OUT[(y * PAGE_W + x) * 3 + ch] = Math.floor((sum + (SS * SS) / 2) / (SS * SS));
+}
+px = OUT; W = PAGE_W; H = PAGE_H;
+// Per-row PNG filter choice (None, Sub, Up, Average, Paeth), smallest absolute residual wins: a smaller file.
+const stride = W * 3;
+const raw = Buffer.alloc((stride + 1) * H);
+const paeth = (a: number, b: number, c: number) => {
+  const p = a + b - c, pa = Math.abs(p - a), pb = Math.abs(p - b), pc = Math.abs(p - c);
+  return pa <= pb && pa <= pc ? a : pb <= pc ? b : c;
+};
+// One filter for the whole image; each of the five is tried and the smallest compressed stream is kept.
+function filtered(f: number): Buffer {
+  for (let y = 0; y < H; y++) {
+    raw[y * (stride + 1)] = f;
+    for (let i = 0; i < stride; i++) {
+      const v = px[y * stride + i], a = i >= 3 ? px[y * stride + i - 3] : 0;
+      const b = y ? px[(y - 1) * stride + i] : 0, c = y && i >= 3 ? px[(y - 1) * stride + i - 3] : 0;
+      const p = f === 0 ? 0 : f === 1 ? a : f === 2 ? b : f === 3 ? (a + b) >> 1 : paeth(a, b, c);
+      raw[y * (stride + 1) + 1 + i] = (v - p) & 255;
+    }
+  }
+  return deflateSync(raw, { level: 9, memLevel: 9 });
+}
+let idat = filtered(0);
+for (let f = 1; f < 5; f++) { const z = filtered(f); if (z.length < idat.length) idat = z; }
 const ihdr = Buffer.alloc(13);
 ihdr.writeUInt32BE(W, 0); ihdr.writeUInt32BE(H, 4); ihdr[8] = 8; ihdr[9] = 2;
 const png = Buffer.concat([
   Buffer.from([137, 80, 78, 71, 13, 10, 26, 10]),
-  chunk('IHDR', ihdr), chunk('IDAT', deflateSync(raw, { level: 9 })), chunk('IEND', new Uint8Array(0)),
+  chunk('IHDR', ihdr), chunk('IDAT', idat), chunk('IEND', new Uint8Array(0)),
 ]);
 writeFileSync(join(process.env.MAKEFUN_OUTPUT_DIR ?? '/output', 'entry.png'), png);
